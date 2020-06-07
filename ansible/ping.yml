@@ -1,0 +1,4 @@
+- hosts:
+    - db
+  tasks:
+    - action: ping
