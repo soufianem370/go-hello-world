@@ -1,5 +1,5 @@
 ---
-- hosts: "{{ instance_name }}"
+- hosts: all
   gather_facts: false
   tasks:
     - ping:
