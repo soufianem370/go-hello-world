@@ -1,6 +1,5 @@
-- name: Wait for ssh to come up
-  hosts: "{{ instance_name }}"
-  become: false
-  gather_facts: no
+---
+- hosts: "{{ instance_name }}"
+  gather_facts: false
   tasks:
     - ping:
