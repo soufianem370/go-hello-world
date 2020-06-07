@@ -3,4 +3,4 @@
   become: false
   gather_facts: no
   tasks:
-    -ping:
+    - ping:
