@@ -1,8 +1,0 @@
----
-# Set Variable of enviroment DEV or PROD
-# options include:
-#   - dev
-#   - prod
-__server_env:
-  - dev
-

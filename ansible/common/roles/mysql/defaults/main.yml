@@ -1,8 +1,0 @@
----
-mysql_log_dir: /var/log/mysql
-mysql_root_username: root
-mysql_root_home: /root
-mysql_root_password: 3edcvgy7
-mysql_local_ip_network: 10.1.1.%
-mysql_repluser_username: repluser
-mysql_repluser_password: ReplPass01
