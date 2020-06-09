@@ -1,0 +1,15 @@
+---
+- hosts: all
+  gather_facts: True
+  roles:
+    - mysql
+    - mysql
+    - ssh-keys
+    - { role: common, server_env: prod }
+    - routes
+    - dns
+    - iptables
+#    - mysql
+    - prometheus-node-exporter
+    - prometheus-mysqld-exporter
+

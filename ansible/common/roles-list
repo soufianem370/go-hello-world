@@ -1,0 +1,24 @@
+  roles:
+    - common                                                # motd, bash perso ( default dev, see also in glpi ) , selinux_disable , add epal, add + del pkg , swap 
+    - dns                                                   # push resolv.conf for dc1.ds.prod, dc66.di.prod, dcf.prod, orion.prod
+    - iptables                                              # 
+    - mysql                                                 # 
+    - prometheus-mysqld-exporter                            #
+    - prometheus-node-exporter                              #
+    - { role: common, tags: cleanup }                       #
+    - { role: sensu-client }                                #
+    - { role: sensu-client, tags: config }                  #
+    - { role: ssh-keys }                                    #
+    - routes
+    - sensu-client
+    - ssh-keys
+    - vrack
+    - megacli                                               # install megacli
+
+    - role: jdk
+      java_packages: jdk-8u131-linux-x64.rpm
+
+
+    - { role: jdk, java_packages: jdk-8u131-linux-x64.rpm }
+    - { role: common, server_env: dev }
+    - { role: vrack, eth1_ip: '10.1.1.130' }

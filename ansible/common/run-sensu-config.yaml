@@ -1,0 +1,5 @@
+---
+- hosts: dc66.di.prod,dcf.prod
+  gather_facts: True
+  roles:
+    - { role: sensu-client, tags: config }

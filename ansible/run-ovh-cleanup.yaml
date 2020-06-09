@@ -1,0 +1,5 @@
+---
+- hosts: es-cold07-ns3079391.orion.prod
+  gather_facts: True
+  roles:
+    - { role: common, tags: cleanup }

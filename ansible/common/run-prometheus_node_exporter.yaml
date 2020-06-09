@@ -1,0 +1,6 @@
+---
+#- hosts: all
+- hosts: dc66.di.prod
+  gather_facts: True
+  roles:
+    - role: prometheus-node-exporter

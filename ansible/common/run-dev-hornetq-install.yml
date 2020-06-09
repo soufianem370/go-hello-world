@@ -1,0 +1,10 @@
+---
+- hosts: all
+  gather_facts: True
+  roles:
+    - ssh-keys
+    - common
+    - role: jdk
+      java_packages: jdk-8u131-linux-x64.rpm
+    - prometheus-node-exporter
+    - sensu-client

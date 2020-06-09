@@ -1,0 +1,13 @@
+---
+- hosts: storm-supervisor11.orion.prod
+  gather_facts: True
+  roles:
+    - ssh-keys
+#   - { role: common, server_env: prod }
+    - common
+    - prometheus-node-exporter
+#    - sensu-client
+    - { role: vrack, eth1_ip: '10.10.8.11' }
+    - routes
+    - dns
+    - iptables

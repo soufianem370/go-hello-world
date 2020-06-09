@@ -1,0 +1,7 @@
+[all]
+
+172.42.42.31     eth1_ip=172.42.42.31    domain=dc1.ds.prod
+172.42.42.32     eth1_ip=172.42.42.32    domain=dc1.ds.prod
+#51.91.105.228     eth1_ip=10.1.1.131    domain=dc1.ds.prod
+#51.91.105.227     eth1_ip=10.1.1.32    domain=dc1.ds.prod
+

@@ -1,0 +1,5 @@
+---
+- hosts: es-shared02-ns3115425.orion.prod
+  gather_facts: True
+  roles:
+    - megacli

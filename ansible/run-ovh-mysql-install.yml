@@ -1,0 +1,14 @@
+---
+- hosts: all
+  gather_facts: True
+  roles:
+#    - ssh-keys
+#    - { role: common, server_env: prod }
+#    - vrack
+#    - routes
+#    - dns
+#    - iptables
+    - mysql
+#    - prometheus-node-exporter
+#    - prometheus-mysqld-exporter
+#    - sensu-client 

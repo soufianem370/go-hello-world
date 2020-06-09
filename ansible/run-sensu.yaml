@@ -1,0 +1,5 @@
+---
+- hosts: mysql08-ns3015674.dc1.ds.prod
+  gather_facts: True
+  roles:
+    - { role: sensu-client }

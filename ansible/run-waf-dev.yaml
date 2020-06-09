@@ -1,0 +1,10 @@
+---
+- hosts: waf01.dev.di.gre.digimind.tech
+  gather_facts: True
+  roles:
+    - ssh-keys
+    - common
+#    - dns
+#    - iptables
+    - prometheus-node-exporter
+    - sensu-client

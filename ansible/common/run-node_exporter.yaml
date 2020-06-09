@@ -1,0 +1,10 @@
+---
+#- hosts: srv-front02-ns3052276.orion.prod
+#- hosts: clustering2.dcf.prod
+#- hosts: dc1.ds.prod
+#- hosts: backup02-dgm16110701.dc66.di.prod
+#- hosts: ovirt01.eolas.digimind.tech
+- hosts: all
+  gather_facts: True
+  roles:
+    - { role: prometheus-node-exporter }
