@@ -1,0 +1,20 @@
+[Unit]
+Description=Prometheus mysqld_exporter
+#After=network.target
+Wants=network-online.target
+After=multi-user.target
+
+
+[Service]
+Type=simple
+User=root
+#Environment=DATA_SOURCE_NAME=mysqld_exporter:tms5BrmwBJfV5bPS@unix(/data/mysql/mysql.sock)/
+#Environment=DATA_SOURCE_NAME=mysqld_exporter:tms5BrmwBJfV5bPS@unix(/var/lib/mysql/mysql.sock)/
+ExecStart={{ mysqld_exporter_bin_path }} {{ mysqld_exporter_bin_args }}
+Restart=always
+RestartSec=1min
+
+[Install]
+WantedBy=multi-user.target
+
+

@@ -1,0 +1,25 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: delegated
+  options:
+    managed: false
+    login_cmd_template: 'ssh root@{instance}'
+    ansible_connection_options:
+      ansible_connection: ssh
+lint:
+  name: yamllint
+platforms:
+  - name: gnome-boxes-centos7
+provisioner:
+  name: ansible
+  lint:
+    name: ansible-lint
+    options:
+      x: ["ANSIBLE0010"]
+scenario:
+  name: default
+verifier:
+  name: testinfra
+  enabled: false

@@ -1,0 +1,214 @@
+---
+#- name: Install the MySQL repo
+  #  yum:
+          #    name: "http://dev.mysql.com/get/mysql80-community-release-{{ mysql_upstream_dist }}-1.noarch.rpm"
+    #    state: present
+
+- name: Disable MySQL 8.0 repo
+  ini_file:
+    dest: "/etc/yum.repos.d/mysql-community.repo"
+    section: "mysql80-community"
+    option: enabled
+    value: "0"
+
+- name: Disable MySQL Community repo
+  ini_file:
+    dest: "/etc/yum.repos.d/mysql-community.repo"
+    section: "mysql-community"
+    option: enabled
+    value: "0"
+
+#- name: Enable MySQL 5.6 repo
+#  ini_file:
+#    dest: "/etc/yum.repos.d/mysql-community.repo"
+#    section: "mysql56-community"
+#    option: enabled
+#    value: "1"
+
+- name: Enable MySQL 5.7 repo
+  ini_file:
+    dest: "/etc/yum.repos.d/mysql-community.repo"
+    section: "mysql57-community"
+    option: enabled
+    value: "1"
+
+- name: Install MySQL
+  yum:
+    name: mysql-community-server
+    state: present
+
+- name: Create mysql directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: mysql
+    group: mysql
+    recurse: yes
+  with_items:
+    - /data/mysql/binlogs/
+    - /data/mysql/databases/
+    - /data/mysql/pid/
+    - /data/mysql/relaylogs/
+    - /data/mysql/tmp/
+    - "{{ mysql_log_dir }}"
+
+- name: Create backup directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    recurse: yes
+  with_items:
+    - /backup/conf
+    - /backup/log/node1
+    - /backup/log/node2
+    - /backup/scripts
+    - /backup/data/node1
+    - /backup/data/node2
+
+- name: Copy file for backup
+  copy:
+    src: backup
+    dest: /
+    owner: root
+    group: root
+    mode: preserve
+    directory_mode: yes
+
+- name: Get instance ID
+  set_fact:
+    mysql_instance_id: "{{ hostvars[inventory_hostname].ansible_hostname | regex_search('[0-9]+') }}"
+
+- name: Install backup conf file
+  template:
+    src: backup.conf.j2
+    dest: /backup/conf/backup.conf
+    owner: root
+    group: root
+    mode: 0644
+
+# MySQL backups
+- name: Create crontab MySQL backups 
+  cron:
+    name: MySQL backups
+    minute: 0
+    hour: 0
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    job: "/backup/scripts/backup.sh CLEAN_BINLOGS > /dev/null 2>&1"
+  when: ( mysql_instance_id|int is divisibleby 2 )
+
+- name: Create crontab MySQL logrotate
+  cron:
+    name: MySQL log rotate
+    minute: 0
+    hour: "*"
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    job: "/usr/sbin/logrotate /etc/logrotate.d/mysql > /dev/null 2>&1"
+  when: ( mysql_instance_id|int is divisibleby 2 )
+
+- name: Create crontab Suppression des vieilles mentions
+  cron:
+    name: Suppression des vieilles mentions
+    minute: 0
+    hour: 0
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    job: "cd /opt/digimind/removal && ./erase-mentions.sh local > /dev/null 2>&1"
+  when: ( mysql_instance_id|int is not divisibleby 2 )
+
+- name: Create crontab Suppression des vieux topics
+  cron:
+    name: Suppression des vieux topics
+    minute: 0
+    hour: 3
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    job: "cd /opt/digimind/removal && ./erase-topics.sh local > /dev/null 2>&1"
+  when: ( mysql_instance_id|int is not divisibleby 2 ) 
+
+- name: Install my.cnf file
+  template:
+    src: my.cnf.j2
+    dest: /etc/my.cnf
+    owner: mysql
+    group: mysql
+    mode: 0600
+
+- name: Copy systemd mysqld.service
+  copy:
+    src: mysqld.service
+    dest: /etc/systemd/system/mysqld.service
+    owner: root
+    group: root
+
+- name: Enable systemctl service for MySQL
+  systemd:
+    name: mysqld
+    daemon_reload: yes
+    enabled: yes
+    state: restarted
+
+- name: Get MySQL version
+  command: 'mysql --version'
+  register: mysql_cli_version
+  changed_when: false
+
+- name: Acquire temporary root password
+  shell: awk '$0 ~ "temporary password" {print $11}' {{ mysql_log_dir }}/mysql.err
+  register: mysql_root_temp_password_shell
+  when: ("5.7." in mysql_cli_version.stdout)
+
+- name: Set temporary root password
+  set_fact:
+    mysql_root_temp_password: "{{ mysql_root_temp_password_shell.stdout }}"
+  when: mysql_root_temp_password_shell is not skipped and mysql_root_temp_password_shell.stdout | length > 0
+
+- name: Copy .my.cnf file with temporary root password credentials
+  template:
+    src: "root-temporary-my.cnf.j2"
+    dest: "{{ mysql_root_home }}/.my.cnf"
+    owner: "{{ mysql_root_username }}"
+    mode: 0600
+  when: mysql_root_temp_password is defined
+
+- name: Test temporary root password expired
+  shell: "mysql -NBe 'SELECT NOW();'"
+  register: mysql_temp_password_test_result
+  when: mysql_root_temp_password is defined
+  changed_when: false
+  failed_when: false
+
+- name: Update MySQL root password for localhost root account (5.7.x)
+  no_log: true
+  shell: >
+    mysql -NBe 'SET GLOBAL validate_password_length = 6; SET GLOBAL validate_password_policy=LOW; ALTER USER "{{ mysql_root_username }}"@"localhost" IDENTIFIED WITH mysql_native_password BY "{{ mysql_root_password }}"; CREATE USER "{{ mysql_root_username }}"@"{{ mysql_local_ip_network }}" IDENTIFIED WITH mysql_native_password BY "{{ mysql_root_password }}" ; GRANT ALL ON *.* TO "{{ mysql_root_username }}"@"{{ mysql_local_ip_network }}" ; '
+    --connect-expired-password
+  when: mysql_root_temp_password is defined and 'connect-expired-password' in mysql_temp_password_test_result.stdout
+
+- name: Overwrite .my.cnf file with root password credentials
+  template:
+    src: "root.my.cnf.j2"
+    dest: "{{ mysql_root_home }}/.my.cnf"
+    owner: "{{ mysql_root_username }}"
+    mode: 0600
+  when: mysql_root_temp_password is defined
+
+- name: Create replication user 
+  shell: >
+    mysql -NBe 'SET GLOBAL validate_password_length = 6; SET GLOBAL validate_password_policy=LOW ; CREATE USER "{{ mysql_repluser_username }}"@"{{ mysql_local_ip_network }}" IDENTIFIED WITH mysql_native_password BY "{{ mysql_repluser_password }}"; GRANT REPLICATION SLAVE ON *.* TO "{{ mysql_repluser_username }}"@"{{ mysql_local_ip_network }}" ;'
+
+- name: Change global sql_mode config
+  shell: >
+    mysql -NBe ' SET GLOBAL sql_mode = "STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION" ; '
+

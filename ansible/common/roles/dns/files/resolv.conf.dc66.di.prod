@@ -1,0 +1,4 @@
+search dc66.di.prod
+options timeout:1 attempts:1
+nameserver 10.66.24.24
+nameserver 10.66.24.68

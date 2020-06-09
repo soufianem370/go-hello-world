@@ -1,0 +1,12 @@
+# OVH VRACK
+10.0.0.0/12 via 0.0.0.0 dev eth1
+
+# DI prod net
+10.66.0.0/16 via 10.10.14.1 dev eth1
+
+# Dev VPN
+172.20.250.0/24 via 10.10.14.1 dev eth1
+
+# Grenoble office
+192.168.0.0/16 via 10.10.14.1 dev eth1
+

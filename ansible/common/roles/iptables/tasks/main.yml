@@ -1,0 +1,14 @@
+---
+- name: Copy iptables files
+  template:
+    src: iptables
+    dest: /etc/sysconfig/iptables
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Start and enable iptables service
+  systemd:
+    name: iptables.service
+    state: restarted
+    enabled: yes

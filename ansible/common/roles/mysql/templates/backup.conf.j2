@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Main parameters
+
+{% if mysql_instance_id|int is divisibleby 2 %}
+REPLICA_NAME=mysql_{{ mysql_instance_id | int - 1 }}-{{ mysql_instance_id }}
+{% else %}
+REPLICA_NAME=mysql_{{ mysql_instance_id }}-{{ mysql_instance_id | int + 1}}
+{% endif %}
+INSTANCE_NAME="mysql{{ mysql_instance_id }}.dc1.ds.prod"
+PROMETHEUS_PUSHGATEWAY="prometheus-pushgateway.orion.ovh.digimind.tech"
+RETENTION_POLICY=4
+MIN_AVAILABLE_SIZE=180
+COMPRESSION_RATIO=10
+BACKUP_PATH=/backup
+EXCLUDE_FILE=/backup/conf/exclude.lst
+
+# MySQL servers
+# Login-paths have to be managed with mysql_config_editor command
+MYSQL_BCKP_LOGINPATH=local
+MYSQL_REPL_LOGINPATH=replica
+

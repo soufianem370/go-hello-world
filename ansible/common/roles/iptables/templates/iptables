@@ -1,0 +1,23 @@
+# Firewall configuration written Fabric
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [2:408]
+
+-A INPUT -i lo -m comment --comment "Allow local traffic" -j ACCEPT
+-A INPUT -i eth1 -m comment --comment "Allow all traffic from vRack" -j ACCEPT
+-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment "Allow responses (necessary for traffic like yum or wget)" -j ACCEPT
+
+-A INPUT -s 89.225.252.184/29 -i eth0 -p icmp -m comment --comment "Allow ping from Grenoble Fiber" -j ACCEPT
+-A INPUT -s 109.190.173.73/32 -i eth0 -p icmp -m comment --comment "Allow ping from Grenoble SDSL" -j ACCEPT
+-A INPUT -s 89.225.252.184/29 -i eth0 -p tcp -m tcp --dport 22 -m comment --comment "Allow SSH from Grenoble Fiber" -j ACCEPT
+-A INPUT -s 109.190.173.73/32 -i eth0 -p tcp -m tcp --dport 22 -m comment --comment "Allow SSH from Grenoble SDSL" -j ACCEPT
+-A INPUT -s 195.154.223.225/32 -i eth0 -p tcp -m tcp --dport 22 -m comment --comment "Allow SSH from monitoring" -j ACCEPT
+
+{% include './iptables.ovh' %}
+
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -j REJECT --reject-with icmp-host-prohibited
+-A FORWARD -j REJECT --reject-with icmp-host-prohibited
+
+COMMIT

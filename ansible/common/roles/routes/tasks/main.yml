@@ -1,0 +1,8 @@
+---
+- name: Add routes files in /etc/sysconfig/network-scripts/
+  copy:
+    src: route-eth1
+    dest: /etc/sysconfig/network-scripts/route-eth1
+
+- name: Load routes
+  command: /etc/sysconfig/network-scripts/ifup-routes eth1

@@ -1,0 +1,7 @@
+---
+elasticsearch_exporter_version: 1.0.4rc1
+elasticsearch_exporter_link: https://github.com/justwatchcom/elasticsearch_exporter/releases/download/v{{ elasticsearch_exporter_version }}/elasticsearch_exporter-{{ elasticsearch_exporter_version }}.linux-amd64.tar.gz
+elasticsearch_exporter_archive_name: elasticsearch_exporter-{{ elasticsearch_exporter_version }}.linux-amd64.tar.gz
+elasticsearch_exporter_tar_dir_path: /opt/prometheus/elasticsearch_exporter-{{ elasticsearch_exporter_version }}.linux-amd64
+elasticsearch_exporter_install_path: /opt/prometheus/
+elasticsearch_exporter_bin_path: "{{ elasticsearch_exporter_install_path }}elasticsearch_exporter"

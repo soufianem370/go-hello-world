@@ -1,0 +1,56 @@
+---
+- name: check os version
+  fail:
+    msg: "OS version too old ({{ ansible_distribution }} {{ ansible_distribution_major_version }})"
+  when: ansible_distribution != "CentOS"
+
+- name: create "{{ elasticsearch_exporter_install_path }}"
+  file:
+    path: "{{ elasticsearch_exporter_install_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: copy prometheus_elasticsearch_exporter
+  copy:
+    src: elasticsearch_exporter
+    dest: "{{ elasticsearch_exporter_install_path }}/elasticsearch_exporter"
+    mode: 0755
+    owner: root
+    group: root
+
+- name: copy prometheus initd script
+  template:
+    src: elasticsearch_exporter.sh.j2
+    dest: /etc/init.d/elasticsearch_exporter
+    mode: 0755
+  when: ansible_service_mgr == "sysvinit" or ansible_service_mgr == "upstart"
+  tags: service
+
+- name: copy prometheus systemd service file
+  template:
+    src: elasticsearch_exporter.service.j2
+#    dest: /lib/systemd/system/elasticsearch_exporter.service
+    dest: /etc/systemd/system/prometheus-elasticsearch-exporter.service
+    mode: 0755
+  when: ansible_service_mgr == "systemd"
+  notify:
+    - systemd daemon reload
+  tags: service
+
+- name: enable and start elasticsearch_exporter initd script
+  service:
+    name: elasticsearch_exporter
+    state: restarted
+    enabled: yes
+  when: ansible_service_mgr == "sysvinit" or ansible_service_mgr == "upstart"
+  tags: service
+
+- name: enable and start elasticsearch_exporter systemd service
+  systemd:
+    name: prometheus-elasticsearch-exporter.service
+    state: restarted
+    enabled: yes
+  when: ansible_service_mgr == "systemd"
+  tags: service

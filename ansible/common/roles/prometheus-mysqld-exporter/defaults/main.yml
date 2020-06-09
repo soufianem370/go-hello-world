@@ -1,0 +1,10 @@
+---
+mysqld_exporter_version: 0.11.0
+mysqld_exporter_link: https://github.com/prometheus/mysqld_exporter/releases/download/v{{ mysqld_exporter_version }}/mysqld_exporter-{{ mysqld_exporter_version }}.linux-amd64.tar.gz
+mysqld_exporter_archive_name: mysqld_exporter-{{ mysqld_exporter_version }}.linux-amd64.tar.gz
+mysqld_exporter_tar_dir_path: /opt/prometheus/mysqld_exporter-{{ mysqld_exporter_version }}.linux-amd64
+mysqld_exporter_install_path: /opt/prometheus/
+mysqld_exporter_bin_path: "{{ mysqld_exporter_install_path }}mysqld_exporter"
+mysqld_exporter_bin_args: "--collect.binlog_size --collect.info_schema.processlist"
+mysqld_exporter_mysql_user_password: tms5BrmwBJfV5bPS
+mysql_package: mysql-community-server*x86_64

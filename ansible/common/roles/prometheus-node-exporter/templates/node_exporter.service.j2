@@ -1,0 +1,14 @@
+[Unit]
+Description=Prometheus node_exporter
+After=network.target
+After=multi-user.target
+
+[Service]
+Type=simple
+User=root
+ExecStart={{ node_exporter_bin_path }} --collector.systemd
+Restart=always
+RestartSec=1min
+
+[Install]
+WantedBy=multi-user.target

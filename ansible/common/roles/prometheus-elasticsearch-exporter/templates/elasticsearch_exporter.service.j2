@@ -1,0 +1,16 @@
+[Unit]
+Description=Prometheus Elasticsearch Exporter
+After=local-fs.target network-online.target network.target
+Wants=local-fs.target network-online.target network.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+Nice=10
+ExecStart={{ elasticsearch_exporter_bin_path }} --es.uri=http://{{ inventory_hostname }}:9200 --es.snapshots=true --es.indices=true
+
+
+[Install]
+WantedBy=multi-user.target
+

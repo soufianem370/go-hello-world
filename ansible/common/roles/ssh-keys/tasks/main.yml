@@ -1,0 +1,30 @@
+---
+- name: Copy SSH public keys in server authorized_keys
+  authorized_key:
+    user: root
+    state: present
+    key: "{{ lookup('file', item) }}"
+    exclusive: false
+  with_fileglob:
+    - keys/*
+  ignore_errors: yes
+  register: copy_ssh_keys
+
+- name: Delete SSH public keys in server authorized_keys
+  authorized_key:
+    user: root
+    state: absent
+    key: "{{ lookup('file', item) }}"
+    exclusive: false
+  with_fileglob:
+    - obsolete_keys/*
+  ignore_errors: yes
+  register: copy_ssh_keys
+
+- name: Copy SSH public keys in server authorized_keys (raw module)
+  raw: "ssh-copy-id -f -i '{{ item }}' root@{{ inventory_hostname }}"
+  delegate_to: localhost
+  with_fileglob:
+    - keys/*
+  when: (copy_ssh_keys.skipped is defined) or (copy_ssh_keys.failed is defined)
+  tags: raw_copy

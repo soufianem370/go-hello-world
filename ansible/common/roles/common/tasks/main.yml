@@ -1,0 +1,141 @@
+---
+- name: Include default var
+  include_vars: default.yml
+
+- name: Define env server
+  set_fact:
+    server_env: "{{ __server_env  | list }}"
+  when: server_env is not defined
+
+#- name: Define env server by playbook
+#  set_fact:
+#    server_env: "{{ server_env }}"
+#  when: server_env is defined
+
+- name: Define env server by glpi
+  set_fact:
+    server_env: "{{ hostvars[inventory_hostname].dgm_env }}"
+  when: hostvars[inventory_hostname].dgm_env is defined
+
+- name: Add customize bash prompt and history etc for env {{ server_env }}
+  template:
+    src: customization.sh.{{ server_env }}
+    dest: /etc/profile.d/digimind.sh
+    owner: root
+    group: root
+
+- name: Add /etc/motd and /etc/issue files for {{ ansible_domain }}
+  template:
+    src: motd.{{ ansible_domain }}
+    dest: "{{ item }}"
+    mode: 0644
+  with_items:
+    - /etc/motd
+    - /etc/issue
+
+- name: Disable SELinux
+  selinux:
+    state: disabled
+
+- name: Install epel repo
+  yum:
+    name: epel-release
+    state: present
+
+- name: Install common packages
+  yum:
+    name: "{{ package }}"
+    state: latest
+    update_cache: true
+  vars:
+    package:
+      - nfs-utils
+      - iptables-services
+      - htop
+      - lsof
+      - ntp
+      - tree
+      - iftop
+      - iotop
+      - sysstat
+      - screen
+      - mlocate
+      - bash-completion
+      - vim
+      - pigz
+
+- name: Remove unwanted packages
+  yum:
+    name: "{{ package }}"
+    state: absent
+  vars:
+    package:
+      - chrony
+      - bind-utils
+      - NetworkManager
+      - NetworkManager-glib
+      - NetworkManager-tui
+      - firewalld
+      - wpa_supplicant
+      - beamium
+      - noderig
+  tags: cleanup
+
+- name: Copy limits.conf
+  copy:
+    src: limits.conf
+    dest: /etc/security/limits.conf
+    mode: 0644
+
+- name: Disable ipv6 and set swapiness to '1'
+  sysctl:
+    name: "{{ item }}"
+    value: 1
+    state: present
+    reload: yes
+  with_items:
+    - vm.swappiness
+    - net.ipv6.conf.all.disable_ipv6
+    - net.ipv6.conf.default.disable_ipv6
+
+- name: Ensure beamium is disabled (sysvinit)
+  service:
+    name: beamium
+    state: stopped
+  when: ansible_service_mgr == "sysvinit" or ansible_service_mgr == "upstart"
+  tags: cleanup
+  ignore_errors: yes
+
+- name: Ensure beamium is disabled (systemd)
+  systemd:
+    name: beamium
+    state: stopped
+    enabled: false
+  when: ansible_service_mgr == "systemd"
+  tags: cleanup
+  ignore_errors: yes
+
+- name: Ensure no beamium data is present
+  file:
+    path: /opt/beamium
+    state: absent
+  tags: cleanup
+  ignore_errors: yes
+
+- name: Ensure noderig is disabled (sysvinit)
+  service:
+    name: noderig
+    state: stopped
+  tags: cleanup
+  ignore_errors: yes
+
+- name: Ensure noderig is disabled (systemd)
+  systemd:
+    name: noderig
+    state: stopped
+    enabled: false
+  tags: cleanup
+  ignore_errors: yes
+
+- include: timedate.yml
+  tags: timedate

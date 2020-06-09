@@ -1,0 +1,112 @@
+---
+- name: check os version
+  fail:
+    msg: "OS version too old ({{ ansible_distribution }} {{ ansible_distribution_major_version }})"
+  when: ansible_distribution != "CentOS"
+
+- name: create "{{ node_exporter_install_path }}"
+  file:
+    path: "{{ node_exporter_install_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: untar prometheus node_exporter
+  unarchive:
+    src: "{{ node_exporter_archive_name }}"
+    dest: "{{ node_exporter_install_path }}"
+    list_files: yes
+    remote_src: no
+
+- name: move node_exporter binary
+  command: "mv {{ node_exporter_tar_dir_path }}/node_exporter {{ node_exporter_install_path }}"
+
+- name: set rights to node_exporter binary
+  file:
+    path: "{{ node_exporter_install_path }}/node_exporter"
+    owner: root
+    group: root
+    mode: 0755
+
+- name: remove tar extract directory
+  file:
+    state: absent
+    path: node_exporter_tar_dir_path
+
+- name: copy prometheus initd script
+  template:
+    src: node_exporter.sh.j2
+    dest: /etc/init.d/node_exporter
+    mode: 0755
+  when: ansible_service_mgr == "sysvinit" or ansible_service_mgr == "upstart"
+  tags: service
+
+#- name: stop old prometheus_node_exporter
+#  service:
+#    name: prometheus-node-exporter
+#    state: stopped
+#    enabled: no
+#  when: ansible_service_mgr == "sysvinit" or ansible_service_mgr == "upstart"
+#  tags: service
+
+#- name: stop old prometheus_node_exporter systemd
+#  systemd:
+#    name: prometheus-node-exporter
+#    state: stopped
+#    enabled: no
+#  when: ansible_service_mgr == "systemd"
+#  tags: service
+
+#- name: remove unused file prometheus-node-exporter.service 
+#  file:
+#    state: absent
+#    path: /etc/systemd/system/prometheus-node-exporter.service
+
+#- name: remove unused file prometheus-node-exporter.service.bak
+#  file:
+#    state: absent
+#    path: /etc/systemd/system/prometheus-node-exporter.service.bak
+
+#- name: Get running processes old prometheus_node_exporter
+#  shell: "/sbin/pidof -x node_exporter"
+#  register: running_processes
+
+#- name: Kill running processes old prometheus_node_exporter
+#  shell: "kill {{ item }}"
+#  with_items: "{{ running_processes.stdout_lines }}"
+
+#- name: remove unused file /usr/local/bin/node_exporter
+#  file:
+#    state: absent
+#    path: /usr/local/bin/node_exporter
+
+- name: reload systemd
+  command: systemctl daemon-reload
+  when: ansible_service_mgr == "systemd"
+
+- name: copy prometheus systemd service file
+  template:
+    src: node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+    mode: 0755
+  when: ansible_service_mgr == "systemd"
+  notify:
+    - systemd daemon reload
+  tags: service
+
+- name: enable and start node_exporter initd script
+  service:
+    name: node_exporter
+    state: restarted
+    enabled: yes
+  when: ansible_service_mgr == "sysvinit" or ansible_service_mgr == "upstart"
+  tags: service
+
+- name: enable and start node_exporter systemd service
+  systemd:
+    name: node_exporter
+    state: restarted
+    enabled: yes
+  when: ansible_service_mgr == "systemd"
+  tags: service

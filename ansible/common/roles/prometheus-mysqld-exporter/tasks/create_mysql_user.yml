@@ -1,0 +1,71 @@
+---
+- name: check if user exists
+  command: mysql --login-path=local -BN -e "SELECT count(*) FROM user WHERE user = '{{ user }}';" mysql
+  ignore_errors: yes
+  register: select_user
+
+- name: set login_path_local bool
+  set_fact:
+    login_path_local: False
+  when: "'denied' in select_user.stderr or select_user.stderr|default('') != ''"
+
+- name: set login_path_local bool
+  set_fact:
+    login_path_local: True
+  when: "'denied' not in select_user.stderr"
+
+- name: recheck if user exists
+  command: mysql -BN -e "SELECT count(*) FROM user WHERE user = '{{ user }}';" mysql
+  register: select_user_recheck
+  when: "not login_path_local or select_user.stderr|default('') != ''"
+
+- block:
+  - name: create mysql prometheus user
+    command: mysql -vv -e "CREATE USER '{{ user }}'@'localhost' IDENTIFIED BY '{{ password }}';"
+
+  - name: grant mysql prometheus user
+    command: mysql -vv -e "GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO '{{ user }}'@'localhost';"
+  when: not login_path_local and (select_user.stdout|default(1) == 0 or select_user_recheck.stdout|default(1) == 0)
+
+- debug:
+    var: select_user
+
+- debug:
+    var: select_user_recheck
+
+- debug:
+    var: login_path_local
+
+# pass / login_path_local = true
+- block:
+  - name: create mysql prometheus user
+    command: mysql --login-path=local -vv -e "CREATE USER '{{ user }}'@'localhost' IDENTIFIED BY '{{ password }}';"
+
+  - name: grant mysql prometheus user
+    command: mysql --login-path=local -vv -e "GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO '{{ user }}'@'localhost';"
+  when: login_path_local and (select_user.stdout|default(1) == 0 or select_user_recheck.stdout|default(1) == 0)
+
+#- name: create mysql prometheus user
+#  command: mysql --login-path=local -vv -e "CREATE USER IF NOT EXISTS 'mysqld_exporter'@'localhost' IDENTIFIED BY '{{ mysqld_exporter_mysql_user_password }}';"
+#  ignore_errors: yes
+#  register: result_create
+#
+#- name: check user creation
+#  fail:
+#    msg: result_create.stderr
+#  when: "'denied' in result_create.stderr"
+#
+#- name: create mysql prometheus user (without --login-path=local)
+#  command: mysql -vv -e "CREATE USER IF NOT EXISTS 'mysqld_exporter'@'localhost' IDENTIFIED BY '{{ mysqld_exporter_mysql_user_password }}';"
+#  ignore_errors: yes
+#  when: "'unknown variable' in result_create.stderr"
+#
+#- name: grant mysql prometheus user
+#  command: mysql --login-path=local -vv -e "GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'mysqld_exporter'@'localhost';"
+#  ignore_errors: yes
+#  when: "'unknown variable' not in result_create.stderr"
+#
+#- name: grant mysql prometheus user (without --login-path=local)
+#  command: mysql -vv -e "GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'mysqld_exporter'@'localhost';"
+#  ignore_errors: yes
+#  when: "'unknown variable' in result_create.stderr"

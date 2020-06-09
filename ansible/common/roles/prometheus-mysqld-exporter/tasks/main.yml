@@ -1,0 +1,76 @@
+---
+#- name: check os version
+#  fail:
+#    msg: "OS version too old ({{ ansible_distribution }} {{ ansible_distribution_major_version }})"
+#  when: ansible_distribution != "CentOS"
+
+- name: get mysql package (CentOS)
+  command: rpm -qa "{{ mysql_package }}"
+  register: mysql_package
+
+- name: fail if mysql is not present
+  fail:
+    msg: "{{ mysql_package }} package is not present"
+  when: mysql_package.stdout == []
+
+- name: create "{{ mysqld_exporter_install_path }}"
+  file:
+    path: "{{ mysqld_exporter_install_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: untar prometheus mysqld_exporter
+  unarchive:
+    src: "{{ mysqld_exporter_archive_name }}"
+    dest: "{{ mysqld_exporter_install_path }}"
+    list_files: yes
+    remote_src: no
+
+- name: move mysqld_exporter binary
+  command: "mv {{ mysqld_exporter_tar_dir_path }}/mysqld_exporter {{ mysqld_exporter_install_path }}"
+
+- name: set rights to mysqld_exporter binary
+  file:
+    path: "{{ mysqld_exporter_install_path }}/mysqld_exporter"
+    owner: root
+    group: root
+    mode: 0755
+
+- name: remove tar extract directory
+  file:
+    state: absent
+    path: mysqld_exporter_tar_dir_path
+
+#- include: create_mysql_user.yml user=mysqld_exporter password={{ mysqld_exporter_mysql_user_password }}
+
+- name: copy prometheus initd script
+  template:
+    src: mysqld_exporter.sh.j2
+    dest: /etc/init.d/mysqld_exporter
+    mode: 0755
+  when: ansible_service_mgr == "sysvinit" or ansible_service_mgr == "upstart"
+
+- name: copy prometheus systemd service file
+  template:
+    src: mysqld_exporter.service.j2
+    dest: /etc/systemd/system/mysqld_exporter.service
+    mode: 0755
+  when: ansible_service_mgr == "systemd"
+  notify:
+    - systemd daemon reload
+
+- name: enable and start mysqld_exporter initd script
+  service:
+    name: mysqld_exporter
+    state: restarted
+    enabled: yes
+  when: ansible_service_mgr == "sysvinit" or ansible_service_mgr == "upstart"
+
+- name: enable and start mysqld_exporter systemd service
+  systemd:
+    name: mysqld_exporter
+    state: restarted
+    enabled: yes
+  when: ansible_service_mgr == "systemd"
